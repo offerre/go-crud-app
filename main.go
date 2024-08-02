@@ -65,6 +65,9 @@ func getUser(c echo.Context) error {
 	defer lock.Unlock()
 	id, _ := strconv.Atoi(c.Param("id"))
 	index := findIndexById(users, id)
+	if index == -1 {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "User not found"})
+	}
 	return c.JSON(http.StatusOK, users[index])
 }
 
@@ -80,6 +83,9 @@ func updateUser(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
 	u.ID = id
 	index := findIndexById(users, id)
+	if index == -1 {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "User not found"})
+	}
 	users[index] = *u
 	return c.JSON(http.StatusOK, users[index])
 }
@@ -97,16 +103,17 @@ func deleteCard(c echo.Context) error {
 	defer lock.Unlock()
 	id, _ := strconv.Atoi(c.Param("id"))
 	cardId, _ := strconv.Atoi(c.QueryParam("cardID"))
-
 	usrIndex := findIndexById(users, id)
-	cards := users[usrIndex].Cards
 
-	cardIndex := -1
-	for i, v := range cards {
-		if v.ID == cardId {
-			cardIndex = i
-			break
-		}
+	if usrIndex == -1 {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "User not found"})
+	}
+
+	cards := users[usrIndex].Cards
+	cardIndex := findCardById(cards, cardId)
+
+	if cardIndex == -1 {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "Card not found"})
 	}
 	cards = append(cards[:cardIndex], cards[cardIndex+1:]...)
 	users[usrIndex].Cards = cards
@@ -136,6 +143,17 @@ func findIndexById(s []user, id int) int {
 		}
 	}
 	return index
+}
+
+func findCardById(cards []card, id int) int {
+	cardIndex := -1
+	for i, v := range cards {
+		if v.ID == id {
+			cardIndex = i
+			break
+		}
+	}
+	return cardIndex
 }
 
 func main() {
